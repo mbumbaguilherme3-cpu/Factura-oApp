@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # Sistema de Faturacao da Loja
 
 Aplicacao web de faturacao para loja, feita em Python com SQLite, focada em operacao real e integridade de dados.
@@ -69,3 +70,6 @@ python -m unittest discover -s tests -q
 ## Observacao importante
 
 O sistema ja tem base tecnica para operacao, mas as regras fiscais especificas do pais, da autoridade tributaria e do tipo de negocio ainda precisam de validacao juridico-fiscal antes de chamar isto de compliance legal completo.
+=======
+# Factura-oApp
+>>>>>>> 5f4ddb3183ae1586956adda435c1d8cd7d9a7968
