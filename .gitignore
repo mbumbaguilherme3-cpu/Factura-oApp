@@ -1,0 +1,43 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+ENV/
+build/
+dist/
+*.egg-info/
+
+# SQLite
+*.db
+*.sqlite3
+
+# VS Code
+.vscode/
+
+# Runtime
+/database/runtime/
+/runtime/
+
+# Logs
+*.log
+
+# Byte-compiled / optimized / DLL files
+*.so
+
+# macOS
+.DS_Store
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# Tests
+.pytest_cache/
+
+# Node
+node_modules/

@@ -1,0 +1,103 @@
+name: CI - Tests & Migrations
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  test-sqlite:
+    runs-on: ubuntu-latest
+    name: Test (SQLite)
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+    
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+    
+    - name: Run pytest (SQLite)
+      env:
+        DB_TYPE: sqlite
+      run: |
+        python -m pytest tests/ -v --tb=short
+  
+  test-postgresql:
+    runs-on: ubuntu-latest
+    name: Test (PostgreSQL)
+    
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: billing_app_test
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+    
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+    
+    - name: Run pytest (PostgreSQL)
+      env:
+        DB_TYPE: postgresql
+        DB_HOST: localhost
+        DB_PORT: 5432
+        DB_NAME: billing_app_test
+        DB_USER: postgres
+        DB_PASSWORD: postgres
+      run: |
+        python -m pytest tests/ -v --tb=short
+  
+  code-quality:
+    runs-on: ubuntu-latest
+    name: Code Quality Checks
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+    
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt flake8 black isort
+    
+    - name: Check imports
+      run: |
+        isort --check-only billing_app/ tests/ || true
+    
+    - name: Check formatting
+      run: |
+        black --check billing_app/ tests/ || true
+    
+    - name: Lint
+      run: |
+        flake8 billing_app/ tests/ --max-line-length=120 --ignore=E501,W503 || true
