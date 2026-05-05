@@ -1,7 +1,19 @@
-from billing_app.database import DEFAULT_DB_PATH, initialize_database
-from billing_app.web import BillingApplication, serve
+"""
+Main Flask Application Entry Point
+AGT (Autoridade Geral Tributária) Compliance System - Angola
+"""
 
+import os
+from billing_app.app_factory import create_app
 
-if __name__ == "__main__":
-    initialize_database(DEFAULT_DB_PATH)
-    serve(BillingApplication(DEFAULT_DB_PATH))
+# Create Flask application
+app = create_app(os.getenv('FLASK_ENV', 'development'))
+
+if __name__ == '__main__':
+    # Run development server
+    app.run(
+        host=os.getenv('HOST', '0.0.0.0'),
+        port=int(os.getenv('PORT', 5000)),
+        debug=os.getenv('DEBUG', 'True') == 'True'
+    )
+

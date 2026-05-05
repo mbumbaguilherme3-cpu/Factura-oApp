@@ -12,9 +12,10 @@ from sqlalchemy import (
     Numeric, ForeignKey, CHAR, CheckConstraint, Index
 )
 from sqlalchemy.orm import relationship
-from sqlalchemy.ext.declarative import declarative_base
+from billing_app.db_config import db
 
-Base = declarative_base()
+# Use db.Model as base class
+Base = db.Model
 
 
 class NIFType(Enum):

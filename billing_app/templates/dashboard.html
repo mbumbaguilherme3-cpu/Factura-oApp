@@ -1,0 +1,173 @@
+{% extends "base.html" %}
+
+{% block content %}
+<section class="dashboard">
+    <!-- KPIs -->
+    <div class="kpi-section">
+        <div class="kpi-card">
+            <h3>Faturas este Mês</h3>
+            <p class="kpi-value">{{ stats.invoices_this_month }}</p>
+            <span class="kpi-status">+12% vs mês anterior</span>
+        </div>
+        
+        <div class="kpi-card">
+            <h3>Total Faturado</h3>
+            <p class="kpi-value">{{ "{:,.2f}".format(stats.total_amount) }} AOA</p>
+            <span class="kpi-status">IVA: {{ "{:,.2f}".format(stats.total_iva) }} AOA</span>
+        </div>
+        
+        <div class="kpi-card">
+            <h3>Conformidade</h3>
+            <p class="kpi-value">{{ stats.compliance_percentage }}%</p>
+            <span class="kpi-status" id="compliance-status">✓ Conforme</span>
+        </div>
+        
+        <div class="kpi-card">
+            <h3>Faturas Emitidas</h3>
+            <p class="kpi-value">{{ stats.issued_invoices }}</p>
+            <span class="kpi-status">Aguardando AGT: {{ stats.pending_agt }}</span>
+        </div>
+    </div>
+
+    <!-- Charts -->
+    <div class="charts-section">
+        <div class="chart-container">
+            <h3>Faturação por Dia</h3>
+            <canvas id="dailyChart"></canvas>
+        </div>
+        
+        <div class="chart-container">
+            <h3>Regime de IVA</h3>
+            <canvas id="ivaChart"></canvas>
+        </div>
+    </div>
+
+    <!-- Recent Invoices -->
+    <div class="recent-section">
+        <h2>Faturas Recentes</h2>
+        <table class="invoices-table">
+            <thead>
+                <tr>
+                    <th>Número</th>
+                    <th>Cliente</th>
+                    <th>Data</th>
+                    <th>Valor</th>
+                    <th>IVA</th>
+                    <th>Status</th>
+                    <th>Ação</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for invoice in recent_invoices %}
+                <tr>
+                    <td class="invoice-number">{{ invoice.invoice_number or "DRAFT" }}</td>
+                    <td>{{ invoice.customer_name }}</td>
+                    <td>{{ invoice.invoice_date.strftime('%d/%m/%Y') }}</td>
+                    <td class="amount">{{ "{:,.2f}".format(invoice.gross_total) }} AOA</td>
+                    <td class="iva">{{ "{:,.2f}".format(invoice.iva_total) }} AOA</td>
+                    <td>
+                        <span class="status-badge status-{{ invoice.status }}">
+                            {% if invoice.status == 'D' %}
+                                Rascunho
+                            {% elif invoice.status == 'I' %}
+                                Emitida
+                            {% elif invoice.status == 'S' %}
+                                Assinada
+                            {% elif invoice.status == 'T' %}
+                                Submetida
+                            {% elif invoice.status == 'A' %}
+                                Confirmada
+                            {% else %}
+                                {{ invoice.status }}
+                            {% endif %}
+                        </span>
+                    </td>
+                    <td>
+                        <a href="/invoices/{{ invoice.invoice_id }}" class="action-btn">Ver</a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- System Status -->
+    <div class="status-section">
+        <h2>Status do Sistema</h2>
+        <div class="status-grid">
+            <div class="status-item">
+                <span class="status-indicator online"></span>
+                <p>API: Online</p>
+            </div>
+            <div class="status-item">
+                <span class="status-indicator online"></span>
+                <p>Base de Dados: Online</p>
+            </div>
+            <div class="status-item">
+                <span class="status-indicator {{ 'online' if system_status.keys_available else 'offline' }}"></span>
+                <p>Chaves: {% if system_status.keys_available %}Disponíveis{% else %}Indisponíveis{% endif %}</p>
+            </div>
+            <div class="status-item">
+                <span class="status-indicator {{ 'online' if system_status.agt_connected else 'offline' }}"></span>
+                <p>AGT: {% if system_status.agt_connected %}Conectado{% else %}Desconectado{% endif %}</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<script>
+    // Daily Chart
+    const dailyCtx = document.getElementById('dailyChart').getContext('2d');
+    new Chart(dailyCtx, {
+        type: 'line',
+        data: {
+            labels: ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sab', 'Dom'],
+            datasets: [{
+                label: 'Faturação (AOA)',
+                data: {{ daily_amounts | tojson }},
+                borderColor: '#0066cc',
+                tension: 0.1,
+                fill: true,
+                backgroundColor: 'rgba(0, 102, 204, 0.1)'
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: {
+                    display: true,
+                    position: 'top'
+                }
+            }
+        }
+    });
+
+    // IVA Chart
+    const ivaCtx = document.getElementById('ivaChart').getContext('2d');
+    new Chart(ivaCtx, {
+        type: 'doughnut',
+        data: {
+            labels: ['Geral (14%)', 'Isento (0%)', 'Simplificado'],
+            datasets: [{
+                data: {{ iva_distribution | tojson }},
+                backgroundColor: [
+                    '#0066cc',
+                    '#00cc66',
+                    '#ffcc00'
+                ],
+                borderColor: '#fff',
+                borderWidth: 2
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: {
+                    display: true,
+                    position: 'bottom'
+                }
+            }
+        }
+    });
+</script>
+{% endblock %}

@@ -1,0 +1,157 @@
+{% extends "base.html" %}
+
+{% block content %}
+<section class="compliance-page">
+    <h2>Auditoria e Conformidade</h2>
+
+    <!-- Compliance Summary -->
+    <div class="compliance-summary">
+        <div class="summary-card">
+            <h3>Taxa de Conformidade</h3>
+            <div class="compliance-meter">
+                <div class="meter-bar">
+                    <div class="meter-fill" style="width: {{ compliance_stats.rate }}%"></div>
+                </div>
+                <p class="meter-value">{{ compliance_stats.rate }}% Conforme</p>
+            </div>
+        </div>
+
+        <div class="summary-card">
+            <h3>Eventos Auditados</h3>
+            <p class="metric-value">{{ compliance_stats.total_events }}</p>
+            <p class="metric-detail">últimos 30 dias</p>
+        </div>
+
+        <div class="summary-card">
+            <h3>Eventos Não-Conformes</h3>
+            <p class="metric-value alert">{{ compliance_stats.non_compliant_events }}</p>
+            <p class="metric-detail">Requer Ação</p>
+        </div>
+
+        <div class="summary-card">
+            <h3>Validações Falhadas</h3>
+            <p class="metric-value warning">{{ compliance_stats.failed_validations }}</p>
+            <p class="metric-detail">Última 24h</p>
+        </div>
+    </div>
+
+    <!-- Compliance Alerts -->
+    {% if compliance_alerts %}
+    <div class="alerts-section">
+        <h3>⚠️ Alertas de Conformidade</h3>
+        {% for alert in compliance_alerts %}
+        <div class="alert alert-{{ alert.severity }}">
+            <strong>{{ alert.title }}</strong>
+            <p>{{ alert.message }}</p>
+            <p class="alert-time">{{ alert.timestamp.strftime('%d/%m/%Y %H:%M') }}</p>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <!-- Audit Log -->
+    <div class="audit-section">
+        <h2>Log de Auditoria</h2>
+        <table class="audit-table">
+            <thead>
+                <tr>
+                    <th>Data/Hora</th>
+                    <th>Tipo de Evento</th>
+                    <th>Entidade</th>
+                    <th>Operador</th>
+                    <th>IP</th>
+                    <th>Ação</th>
+                    <th>Status Conformidade</th>
+                    <th>Detalhes</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for log in audit_logs %}
+                <tr>
+                    <td>{{ log.created_at.strftime('%d/%m/%Y %H:%M:%S') }}</td>
+                    <td><span class="event-badge">{{ log.event_type }}</span></td>
+                    <td>{{ log.entity_type }} <br><small>{{ log.entity_id[:8] }}...</small></td>
+                    <td>{{ log.operator_id }}</td>
+                    <td>{{ log.operator_ip }}</td>
+                    <td>{{ log.action }}</td>
+                    <td>
+                        <span class="compliance-badge {% if log.is_compliant %}compliant{% else %}non-compliant{% endif %}">
+                            {% if log.is_compliant %}✓ Conforme{% else %}✗ Não-Conforme{% endif %}
+                        </span>
+                    </td>
+                    <td>
+                        <button class="details-btn" onclick="showDetails('{{ log.log_id }}')">Ver</button>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Signature Audit -->
+    <div class="signature-section">
+        <h2>Auditoria de Assinatura Digital</h2>
+        <table class="signature-table">
+            <thead>
+                <tr>
+                    <th>Data/Hora</th>
+                    <th>Fatura</th>
+                    <th>Operação</th>
+                    <th>Operador</th>
+                    <th>Status</th>
+                    <th>Certificado</th>
+                    <th>Resposta AGT</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for audit in signature_audits %}
+                <tr>
+                    <td>{{ audit.created_at.strftime('%d/%m/%Y %H:%M:%S') }}</td>
+                    <td>{{ audit.invoice_number }}</td>
+                    <td><span class="operation-badge">{{ audit.operation_type }}</span></td>
+                    <td>{{ audit.operator_id }} <br><small>{{ audit.operator_ip }}</small></td>
+                    <td>
+                        <span class="status-badge status-{{ audit.status }}">{{ audit.status }}</span>
+                    </td>
+                    <td>v{{ audit.certificate_version if audit.certificate_version else 'N/A' }}</td>
+                    <td>
+                        {% if audit.agt_response_code %}
+                            <small>{{ audit.agt_response_code }}</small>
+                        {% else %}
+                            <em>-</em>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Compliance Checklist -->
+    <div class="checklist-section">
+        <h2>✓ Checklist de Conformidade AGT</h2>
+        <div class="checklist">
+            <label><input type="checkbox" checked disabled> NIF Validado (Formato + Checksum)</label>
+            <label><input type="checkbox" checked disabled> Regime de IVA Configurado</label>
+            <label><input type="checkbox" checked disabled> Códigos de Isenção Válidos</label>
+            <label><input type="checkbox" checked disabled> Números de Série Sequenciais</label>
+            <label><input type="checkbox" checked disabled> Cronologia Respeitada</label>
+            <label><input type="checkbox" checked disabled> Hash de Integridade Calculado</label>
+            <label><input type="checkbox" checked disabled> Imutabilidade Pós-Emissão</label>
+            <label><input type="checkbox" checked disabled> Assinatura JWS (RS256)</label>
+            <label><input type="checkbox" checked disabled> SAF-T XML Gerado</label>
+            <label><input type="checkbox" checked disabled> Auditoria Completa</label>
+        </div>
+    </div>
+</section>
+
+<script>
+    function showDetails(logId) {
+        fetch(`/api/compliance/logs/${logId}`)
+            .then(response => response.json())
+            .then(data => {
+                alert(`Detalhes do Log:\n\nAntes:\n${JSON.stringify(data.data_before, null, 2)}\n\nDepois:\n${JSON.stringify(data.data_after, null, 2)}`);
+            });
+    }
+</script>
+{% endblock %}

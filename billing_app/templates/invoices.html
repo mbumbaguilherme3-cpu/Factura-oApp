@@ -1,0 +1,153 @@
+{% extends "base.html" %}
+
+{% block content %}
+<section class="invoices-page">
+    <div class="page-header">
+        <h2>Gestão de Faturas</h2>
+        <a href="/invoices/create" class="btn btn-primary">+ Nova Fatura</a>
+    </div>
+
+    <!-- Filters -->
+    <div class="filters">
+        <input type="text" id="search" placeholder="Procurar fatura..." class="filter-input">
+        <select id="status-filter" class="filter-select">
+            <option value="">Todos os Status</option>
+            <option value="D">Rascunho</option>
+            <option value="I">Emitida</option>
+            <option value="S">Assinada</option>
+            <option value="T">Submetida</option>
+            <option value="A">Confirmada</option>
+        </select>
+        <select id="period-filter" class="filter-select">
+            <option value="">Período</option>
+            <option value="today">Hoje</option>
+            <option value="this-week">Esta Semana</option>
+            <option value="this-month">Este Mês</option>
+            <option value="this-year">Este Ano</option>
+        </select>
+    </div>
+
+    <!-- Invoices Table -->
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th>Número de Fatura</th>
+                <th>Cliente</th>
+                <th>Data Emissão</th>
+                <th>Data Vencimento</th>
+                <th>Valor Bruto</th>
+                <th>IVA</th>
+                <th>Valor Líquido</th>
+                <th>Status</th>
+                <th>Assinatura</th>
+                <th>AGT</th>
+                <th>Ações</th>
+            </tr>
+        </thead>
+        <tbody id="invoices-tbody">
+            {% for invoice in invoices %}
+            <tr class="invoice-row">
+                <td class="invoice-num">
+                    {% if invoice.invoice_number %}
+                        <strong>{{ invoice.invoice_number }}</strong>
+                    {% else %}
+                        <em class="draft">DRAFT</em>
+                    {% endif %}
+                </td>
+                <td>{{ invoice.customer_name }}</td>
+                <td>{{ invoice.invoice_date.strftime('%d/%m/%Y') }}</td>
+                <td>{{ invoice.due_date.strftime('%d/%m/%Y') if invoice.due_date else '-' }}</td>
+                <td class="amount">{{ "{:,.2f}".format(invoice.gross_total) }}</td>
+                <td class="amount iva">{{ "{:,.2f}".format(invoice.iva_total) }}</td>
+                <td class="amount net">{{ "{:,.2f}".format(invoice.net_total) }}</td>
+                <td>
+                    <span class="status-badge status-{{ invoice.status }}">
+                        {% if invoice.status == 'D' %}Rascunho
+                        {% elif invoice.status == 'I' %}Emitida
+                        {% elif invoice.status == 'S' %}Assinada
+                        {% elif invoice.status == 'T' %}Submetida
+                        {% elif invoice.status == 'A' %}Confirmada
+                        {% endif %}
+                    </span>
+                </td>
+                <td>
+                    {% if invoice.signature_jws %}
+                        <span class="icon-check">✓ Assinada</span>
+                    {% else %}
+                        <span class="icon-cross">✗ Não assinada</span>
+                    {% endif %}
+                </td>
+                <td>
+                    {% if invoice.agt_submission_id %}
+                        <span class="agt-status">{{ invoice.agt_submission_id }}</span>
+                    {% else %}
+                        <span class="agt-pending">Pendente</span>
+                    {% endif %}
+                </td>
+                <td class="actions">
+                    <a href="/invoices/{{ invoice.invoice_id }}" class="action-link" title="Ver detalhes">👁️</a>
+                    {% if not invoice.is_issued %}
+                        <a href="/invoices/{{ invoice.invoice_id }}/edit" class="action-link" title="Editar">✏️</a>
+                    {% endif %}
+                    {% if invoice.is_issued and not invoice.signature_jws %}
+                        <button class="action-link" onclick="signInvoice('{{ invoice.invoice_id }}')" title="Assinar">🔐</button>
+                    {% endif %}
+                    <a href="/invoices/{{ invoice.invoice_id }}/download" class="action-link" title="Descarregar">⬇️</a>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <!-- Pagination -->
+    <div class="pagination">
+        {% if current_page > 1 %}
+            <a href="?page={{ current_page - 1 }}" class="page-link">← Anterior</a>
+        {% endif %}
+        
+        {% for page_num in page_numbers %}
+            {% if page_num == current_page %}
+                <span class="page-number active">{{ page_num }}</span>
+            {% else %}
+                <a href="?page={{ page_num }}" class="page-link">{{ page_num }}</a>
+            {% endif %}
+        {% endfor %}
+        
+        {% if current_page < total_pages %}
+            <a href="?page={{ current_page + 1 }}" class="page-link">Próxima →</a>
+        {% endif %}
+    </div>
+</section>
+
+<script>
+    function signInvoice(invoiceId) {
+        if (confirm('Deseja assinar esta fatura?')) {
+            fetch(`/api/invoices/${invoiceId}/sign`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'S') {
+                    alert('Fatura assinada com sucesso!');
+                    location.reload();
+                } else {
+                    alert('Erro ao assinar fatura: ' + (data.error || 'Erro desconhecido'));
+                }
+            })
+            .catch(error => alert('Erro: ' + error));
+        }
+    }
+
+    // Filter functionality
+    document.getElementById('search').addEventListener('keyup', function() {
+        const query = this.value.toLowerCase();
+        document.querySelectorAll('.invoice-row').forEach(row => {
+            const text = row.textContent.toLowerCase();
+            row.style.display = text.includes(query) ? '' : 'none';
+        });
+    });
+</script>
+{% endblock %}

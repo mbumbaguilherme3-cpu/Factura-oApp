@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="pt-AO">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AGT - Dashboard de Faturação</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='dashboard.css') }}">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <header class="header">
+            <h1>🇦🇴 AGT Conformidade Fiscal Angola</h1>
+            <p class="subtitle">Sistema de Faturação Eletrônica - 2026</p>
+        </header>
+
+        <!-- Navigation -->
+        <nav class="navbar">
+            <ul>
+                <li><a href="/" class="active">Dashboard</a></li>
+                <li><a href="/invoices">Faturas</a></li>
+                <li><a href="/compliance">Conformidade</a></li>
+                <li><a href="/reports">Relatórios</a></li>
+                <li><a href="/settings">Configurações</a></li>
+            </ul>
+        </nav>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            {% block content %}{% endblock %}
+        </main>
+
+        <!-- Footer -->
+        <footer class="footer">
+            <p>&copy; 2026 AGT - Autoridade Geral Tributária | Versão 1.0</p>
+        </footer>
+    </div>
+</body>
+</html>
